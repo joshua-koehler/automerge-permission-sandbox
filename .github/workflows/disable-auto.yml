@@ -1,0 +1,25 @@
+name: Test disable auto-merge
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        required: true
+        type: string
+permissions: {}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Disable and verify auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+          gh pr view "$PR_NUMBER" --json autoMergeRequest --jq 'if .autoMergeRequest then "before: enabled" else error("auto-merge was not enabled") end'
+          gh pr merge "$PR_NUMBER" --disable-auto
+          gh pr view "$PR_NUMBER" --json autoMergeRequest --jq 'if .autoMergeRequest then error("still enabled") else "after: disabled" end'
